@@ -6,7 +6,7 @@ mărfuri din România.
 
 ## TODO
 
-- arbori algebrici pentru optimizarea unei cerinte + expresie algebrica
+- scrie regulile de optimizare folosite
 - normalizari BCNF, FN4, FN5
 - explica denormalizarea realizata
 - completeaza README cu celelalte detalii legate de proiect

@@ -5,8 +5,51 @@
 \usepackage{parskip}
 \usepackage{graphicx}
 \usepackage{caption}
+\usepackage{listings}
 \usepackage{ragged2e}
 \graphicspath{{./images/}}
+
+\usepackage{xcolor}
+\usepackage{textcomp}
+\usepackage{color}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{HTML}{052bb5}
+\definecolor{backcolour}{HTML}{F2F2F2}
+\definecolor{bookColor}{cmyk}{0,0,0,0.90}  
+\color{bookColor}
+
+\lstset{upquote=true,
+        frame=single,
+        postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space}  
+}
+
+\lstdefinestyle{sql_code_style}{
+    backgroundcolor=\color{backcolour},   
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{codepurple},
+    numberstyle=\numberstyle,
+    stringstyle=\color{codepurple},
+    basicstyle=\scriptsize\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+}
+\lstset{style=sql_code_style}
+
+\newcommand\numberstyle[1]{%
+    \scriptsize
+    \color{codegray}%
+    \ttfamily
+    \ifnum#1<10 0\fi#1 |%
+}
 
 \title{Proiect Baze de Date}
 \author{George Radu}
@@ -44,6 +87,7 @@ Modelul de date respectă anumite restricții de funcționare.
     \item Transportul de marfă se face între 2 depozit, se transportă mai multe loturi de marfă. Pentru un transport vom reține și data din momentul în care a început transportul. Pentru fiecare transport se va folosi un singur camion condus de un șofer profesionist.
 \end{itemize}
 
+\newpage
 \section{Entități}
 \quad \par
 Pentru modelul de date referitor la gestiunea companiilor de transporturi rutiere de mărfuri, structurile: DEPOZIT, LOCATIE, POPAS, FIRMA, CLIENT, PAZA, TRANSPORT, ECHIPA\_PAZA, INVENTAR\_DEPOZIT, INVENTAR\_TRANSPORT, LOT\_MARFA, CAMION, ANGAJAT,\\ PAZNIC, SOFER, PERMIS reprezintă entități.
@@ -72,6 +116,7 @@ Toate entitățile care vor fi precizate sunt independente, cu excepția\\ entit
     \item PERMIS = entitate ce descrie informații despre ce tipuri de permis are un șofer și când le-a obținut. Cheia primară a entității este una compusă din id\_permis + id\_angajat.
 \end{itemize}
 
+\newpage
 \section{Relații}
 \quad\newline
 Se vor prezenta relațiile modelului de date, dând o descriere completă a fiecăreia. Denumirile acestor legături între entități sunt alese sugestiv. Pentru fiecare relație se va preciza cardinalitatea minimă și maximă.
@@ -699,7 +744,136 @@ id\_lot\_marfa\# & nume & cantitate \\
 \end{center}
 \end{table}
 
-....
+\newpage
+BCNF
+FN4
+FN5
+denormalizare
+\newpage
+
+\newpage
+\section{Optimizarea unei cereri}
+
+Se cer următoarele informații:
+
+Pentru fiecare camion sa se afiseze marca, nr. de inmatriculare, numele firmei, de ce soferi a fost condus(pentru fiecare sofer sa se precizeze numele, prenumele si salariul, in cazul in care un camion nu a fost condus de un sofer sa se inlocuiasca aceste coloane cu '-'), dar si data de plecare pentru fiecare transport realizat de sofer cu acest camion. Daca unui angajat i-a fost alocat un camion dar nu a realizat niciun transport in loc de data sa fie afisat mesajul 'nu a realizat transporturi'. Sa se afiseze informatiile despre angajatii doar daca sunt soferi, au fost angajati inainte de data de 13 sept 2020 si detin cel putin un permis auto, in cazul in care un camion a fost condus de un sofer care nu indeplineste aceste cerinte se vor inlocui coloanele cu informatii despre angajat cu '-'. Sa se excluda camioanele de marca IVECO.
+
+Prima cerere \emph{SQL} implementată:
+
+\begin{lstlisting}[language=SQL]
+WITH ang AS -- soferii angajati inainte de 13 sept 2020 care detin cel mult 2 permise auto
+    (SELECT p.id_angajat, a.nume, a.prenume, a.salariu
+     FROM angajat a JOIN permis p ON (a.id_angajat = p.id_angajat)
+     WHERE a.tip_angajat = 'SOFER'
+        and to_char(a.data_angajare, 'dd-mm-yyyy') < '13-9-2020' 
+     GROUP BY p.id_angajat, a.nume, a.prenume, a.salariu
+     HAVING count(p.id_angajat) >= 1  -- care detine cel putin 1 permis  
+     )
+
+SELECT c.marca, c.nr_inmatriculare, f.nume, 
+       NVL(a.nume, '-') "Nume sofer", NVL(a.prenume, '-') "Prenume sofer", 
+       NVL(to_char(a.salariu), '-') "Salariu sofer",
+       NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport"
+FROM camion c FULL OUTER JOIN firma f ON (c.id_firma = f.id_firma)
+              FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
+              FULL OUTER JOIN ang a ON (icc.id_angajat = a.id_angajat)
+              FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
+WHERE
+    upper(c.marca) != 'IVECO' and
+    f.tip_firma = 'TRANSPORT' and 
+    ((icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate)
+     )   or t.data_plecare is null
+    );
+\end{lstlisting}
+
+\newpage
+S-a realizat următorul arbore algebric asociat cererii:
+
+\includegraphics[width=\textwidth]{arbore_v1.png}
+\label{arbore_v1}
+\centering Arbore v1
+
+\newpage\justifyingși expresia algebrică asociată:
+
+\begin{lstlisting}
+R1=SELECT(CAMION, upper(marca)!='IVECO')
+R2=PROJECT(R1, id_camion, id_firma, marca, nr_inmatriculare}
+R3=SELECT(FIRMA, tip_firma='TRANSPORT')
+R4=PROJECT(R3, id_firma, nume)
+R5=FULL OUTER JOIN(R2, R4, id_firma)
+R6=PROJECT(TRANSPORT, id_camion, data_plecare)
+R7=FULL OUTER JOIN(R5, R6, id_camion)
+R8=PROJECT(ISTORIC_CAMIOANE_CONDUSE, id_camion, id_angajat, data_inceput, data_sfarsit)
+R9=FULL OUTER JOIN(R7, R8, id_camion)
+R10=SELECT(R9, (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate)) or t.data_plecare is null)
+R11=SELECT(ANGAJAT, tip_angajat = 'SOFER' and to_char(data_angajare, 'dd-mm-yyyy') < '13-9-2020')
+R12=PROJECT(R11, id_angajat, nume, prenume, salariu)
+R13=PROJECT(PERMIS, id_angajat)
+R14=JOIN(R12, R13, count(p.id_angajat) >= 1)
+R15=PROJECT(R14, id_angajat, nume, prenume, salariu)
+R16=FULL OUTER JOIN(R10, R15, id_angajat)
+Rez=R17=PROJECT(R16, marca, nr_inmatriculare, nume, NVL(nume, '-'), NVL(prenume, '-'), NVL(to_char(salariu), '-'), NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi'))
+\end{lstlisting}
+
+Se fac următoarele optimzări:
+
+\newpage
+Și se ajunge la următorul arborele algebric:
+
+\includegraphics[width=\textwidth]{arbore_v2.png}
+\label{arbore_v2}
+\centering Arbore v2 optimizat
+
+\newpage\justifyingși expresia algebrică asociată:
+\begin{lstlisting}
+R1=SELECT(CAMION, upper(marca)!='IVECO')
+R2=PROJECT(R1, id_camion, id_firma, marca, nr_inmatriculare}
+R3=PROJECT(ISTORIC_CAMIOANE_CONDUSE, id_camion, id_angajat, data_inceput, data_sfarsit)
+R4=FULL OUTER JOIN(R2, R3, id_camion)
+R5=PROJECT(TRANSPORT, id_camion, data_plecare_
+R6=FULL OUTER JOIN(R4, R5, id_camion)
+R7=SELECT(R6, (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate)) or t.data_plecare is null)
+R8=PROJECT(R7, icc.id_camion, icc.id_angajat, t.data_plecare, c.marca, c.nr_inmatriculare, c.id_firma)
+R9=SELECT(ANGAJAT, tip_angajat = 'SOFER' and to_char(data_angajare, 'dd-mm-yyyy') < '13-9-2020')
+R10=PROJECT(R9, id_angajat, nume, prenume, salariu)
+R11=PROJECT(PERMIS, id_angajat)
+R12=JOIN(R10, R11, count(p.id_angajat) >= 1)
+R13=PROJECT(R12, id_angajat, nume, prenume, salariu)
+R14=FULL OUTER JOIN(R8, R13, id_angajat)
+R15=SELECT(FIRMA, tip_firma='TRANSPORT')
+R16=PROJECT(id_firma, nume)
+R17=FULL OUTER JOIN(R14, R16, id_firma)
+Rez=R18=PROJECT(R17, marca, nr_inmatriculare, nume, NVL(nume, '-'), NVL(prenume, '-'), NVL(to_char(salariu), '-'), NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi'))
+\end{lstlisting}
+
+Cererea optimizată finală este:
+
+\begin{lstlisting}[language=SQL]
+WITH ang AS -- soferii angajati inainte de 13 sept 2020 care detin cel mult 2 permise auto
+    (SELECT p.id_angajat, a.nume, a.prenume, a.salariu
+     FROM angajat a JOIN permis p ON (a.id_angajat = p.id_angajat)
+     WHERE a.tip_angajat = 'SOFER'
+        and to_char(a.data_angajare, 'dd-mm-yyyy') < '13-9-2020' 
+     GROUP BY p.id_angajat, a.nume, a.prenume, a.salariu
+     HAVING count(p.id_angajat) >= 1  -- care detine cel putin 1 permis  
+     ),
+     tc AS
+     (SELECT icc.id_camion, icc.id_angajat, t.data_plecare, c.marca, c.nr_inmatriculare, c.id_firma
+      FROM camion c FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
+                    FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
+      WHERE c.marca != 'IVECO' and
+            t.data_plecare is null or icc.data_inceput is null or 
+            (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate))
+      )
+    
+SELECT tc.marca, tc.nr_inmatriculare, f.nume, 
+       NVL(a.nume, '-') "Nume sofer", NVL(a.prenume, '-') "Prenume sofer", 
+       NVL(to_char(a.salariu), '-') "Salariu sofer",
+       NVL(to_char(tc.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport" 
+FROM tc FULL OUTER JOIN ang a ON (tc.id_angajat = a.id_angajat)
+        FULL OUTER JOIN firma f ON (tc.id_firma = f.id_firma)
+WHERE f.tip_firma = 'TRANSPORT';
+\end{lstlisting}
 
 \newpage
 \section{Anexe}
@@ -741,7 +915,7 @@ id\_lot\_marfa\# & nume & cantitate \\
 
 \includegraphics[width=\textwidth]{outer_join_2.png}
 \label{Ex16 1-2}
-\centering Ex. 16 - 1v2 outer join versiune îmbunătățită
+\centering Ex. 17 - 1v2 outer join versiune îmbunătățită
 
 \includegraphics[width=\textwidth]{division_1.png}
 \label{Ex16 2-1}
@@ -754,10 +928,5 @@ id\_lot\_marfa\# & nume & cantitate \\
 \includegraphics[width=\textwidth]{division_3.png}
 \label{Ex16 2-3}
 \centering Ex. 16 - 2-3 division
-
-\includegraphics[width=\textwidth]{division_4.png}
-\label{Ex16 2-4}
-\centering Ex. 16 - 2-4 division
-
 
 \end{document}
