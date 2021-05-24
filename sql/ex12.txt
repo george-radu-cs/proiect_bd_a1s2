@@ -1,0 +1,34 @@
+-- 12.Implementarea a 3 opera?ii de actualizare(UPDATE)sau suprimare (DELETE) a datelor utilizând subcereri. 
+
+/* pentru inceputul verii fiecare firma de paza ofera o marire de salariu cu 75lei
+ * angajatilor cu cel mai mic salariu din firma */ 
+UPDATE P_ANGAJAT
+SET salariu = salariu + 75
+WHERE (salariu, id_firma) in (
+                              SELECT min(salariu), id_firma
+                              FROM P_ANGAJAT
+                              WHERE tip_angajat = 'PAZNIC'
+                              GROUP BY id_firma);
+                          
+/* pe data de 2 aprilie 2021 a intrat in inventarierea unui depozit din 
+ * jud Tulcea loc Tulcea str. Unirii nr. 213 un lot de marfa
+ * de carne de miel a carei cantitate a fost introdusa gresit in baza de date, 
+ * in loc 400 de kg de carne a fost introdusa valoarea 100 */
+UPDATE P_LOT_MARFA
+SET cantitate = 400
+WHERE lower(nume) = 'carne miel' 
+    AND id_lot_marfa IN 
+        (
+        SELECT id_lot_marfa
+        FROM P_LOCATIE l JOIN P_DEPOZIT d ON(l.id_locatie = d.id_locatie)
+                         JOIN P_INVENTAR_DEPOZIT id ON(d.id_depozit = id.id_depozit)
+        WHERE initcap(localitate) = 'Tulcea' AND initcap(strada)='Unirii' AND nr = 213
+                AND to_char(id.data_sosire, 'dd-mm-yyyy') = '02-04-2021'
+        );
+
+/* stregem din baza de date popasurile care nu au fost vizitate pana acum de
+ * niciun sofer de tir */
+DELETE FROM P_POPAS
+WHERE id_popas not in (select id_popas FROM P_ISTORIC_POPASURI);
+
+commit; -- salvam modificarile facute

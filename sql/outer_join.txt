@@ -1,0 +1,69 @@
+Pentru fiecare camion sa se afiseze marca, nr de inmatriculare, numele firmei,
+de ce soferi a condus(pentru fiecare sofer sa se precizeze numele, prenumele
+si salariul, in cazul in care un camion nu a fost condus de un sofer sa se
+inlocuiasca aceste coloane cu '-') dar si data de plecare pentru fiecare
+transport realizat de sofer cu acest camion. Daca unui angajat i-a fost
+alocat un camion dar nu a realizat niciun transport in loc de data sa fie 
+afisat mesajul 'nu a realizat transporturi'. Sa se afiseze informatiile despre
+angajatii doar daca sunt soferi, au fost angajati inainte de data de
+13 sept 2020 si detine cel putin un permis, in cazul in care un camion a fost
+condus de un sofer care nu indeplineste aceste cerinte vom inlocui coloanele
+cu informatii despre angajat cu '-'. Sa se excluda camioanele de marca IVECO.
+
+-=-----------------------------------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------------------------------
+=============================================================================================================
+WITH ang AS -- soferii angajati inainte de 13 sept 2020 care detin cel mult 2 permise auto
+    (SELECT p.id_angajat, a.nume, a.prenume, a.salariu
+     FROM angajat a JOIN permis p ON (a.id_angajat = p.id_angajat)
+     WHERE a.tip_angajat = 'SOFER'
+        and to_char(a.data_angajare, 'dd-mm-yyyy') < '13-9-2020' 
+     GROUP BY p.id_angajat, a.nume, a.prenume, a.salariu
+     HAVING count(p.id_angajat) >= 1  -- care detine cel putin 1 permis  
+     )
+
+SELECT c.marca, c.nr_inmatriculare, f.nume, 
+       NVL(a.nume, '-') "Nume sofer", NVL(a.prenume, '-') "Prenume sofer", 
+       NVL(to_char(a.salariu), '-') "Salariu sofer",
+       NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport"
+FROM camion c FULL OUTER JOIN firma f ON (c.id_firma = f.id_firma)
+              FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
+              FULL OUTER JOIN ang a ON (icc.id_angajat = a.id_angajat)
+              FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
+WHERE
+    upper(c.marca) != 'IVECO' and
+    f.tip_firma = 'TRANSPORT' and 
+    ((icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate)
+     )   or t.data_plecare is null
+    );
+    
+    
+-------------------------------------------------------------------------------
+WITH ang AS -- soferii angajati inainte de 13 sept 2020 care detin cel mult 2 permise auto
+    (SELECT p.id_angajat, a.nume, a.prenume, a.salariu
+     FROM angajat a JOIN permis p ON (a.id_angajat = p.id_angajat)
+     WHERE a.tip_angajat = 'SOFER'
+        and to_char(a.data_angajare, 'dd-mm-yyyy') < '13-9-2020' 
+     GROUP BY p.id_angajat, a.nume, a.prenume, a.salariu
+     HAVING count(p.id_angajat) >= 1  -- care detine cel putin 1 permis  
+     ),
+     tc AS
+     (SELECT icc.id_camion, icc.id_angajat, t.data_plecare, c.marca, c.nr_inmatriculare, c.id_firma
+      FROM camion c FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
+                    FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
+      WHERE t.data_plecare is null or icc.data_inceput is null or 
+            (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate))
+      )
+    
+SELECT tc.marca, tc.nr_inmatriculare, f.nume, 
+       NVL(a.nume, '-') "Nume sofer", NVL(a.prenume, '-') "Prenume sofer", 
+       NVL(to_char(a.salariu), '-') "Salariu sofer",
+       NVL(to_char(tc.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport" 
+FROM tc FULL OUTER JOIN ang a ON (tc.id_angajat = a.id_angajat)
+        FULL OUTER JOIN firma f ON (tc.id_firma = f.id_firma)
+WHERE
+    upper(tc.marca) != 'IVECO' and
+    f.tip_firma = 'TRANSPORT';              
+-------------------------------------------------------------------------------    
+
+

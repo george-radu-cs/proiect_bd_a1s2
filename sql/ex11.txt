@@ -1,0 +1,302 @@
+/* 11.Formula?i în limbaj natural ?i implementa?i 5 cereri SQL complexe ce vor 
+ * utiliza, în ansamblul lor, urmatoarele elemente: 
+ * a.opera?ie join pe cel pu?in 4 tabele 
+ * b.filtrare la nivel de linii 
+ * c.subcereri nesincronizate în care intervin cel pu?in 3 tabele 
+ * d.utilizarea a cel pu?in 2 func?ii pe ?iruri de caractere, 2 func?ii pe date 
+ * calendaristice, a func?iilor NVL ?i DECODE, a cel pu?in unei expresii CASE  
+ * e.ordonari */
+
+-- 1
+ 
+/* Afisati pentru toti soferi toate popasurile in care s-au oprit in ziua in care 
+ * s-a oprit pentru prima data un sofer la restaurantul Ceptura din Ploiesti, sa
+ * se afiseze daca soferul a venit cu un camion inmatriculat in Prahova sau in
+ * alta regiune, numele, prenumele si salariul soferului, numele si tipul 
+ * popasului la care s-a oprit, la ce ora a sosit, cat a stat, cati bani a
+ * cheltuit la popas, si locatia popasului. Locatia sa fie afisata pe o singura
+ * coloana numita Locatie popas. Un sofer cheltuieste la un popas in functie de
+ * salariul sau, soferii cu un salariu mai mic de 3000lei inclusiv vor cheltui doar
+ * 0.005% din salariu, cei cu salariu intre (3000, 4500] vor chelui 0.01% din 
+ * salariu, iar restul vor cheltui 0.015% din salariu. Sa se ordoneze dupa nume
+ * si dupa prenume. Sa se noteze restul coloanelor corespunzator */
+
+SELECT DECODE(
+             (SELECT upper(substr(sc.nr_inmatriculare, 0, 2))
+              FROM camion sc JOIN istoric_camioane_conduse sic ON(sc.id_camion = sic.id_camion)
+                               JOIN angajat sa ON(sic.id_angajat = sa.id_angajat)
+              WHERE sic.id_angajat = a.id_angajat 
+                    and ip.data_sosire < NVL(sic.data_sfarsit, sysdate)
+                    and ip.data_sosire > NVL(sic.data_inceput, sysdate)
+              ), 'PH', 'Din Prahova', 'Alta regiune' 
+       ) "Verifica camion din Prahova", 
+       a.nume "Nume angajat", a.prenume "Prenume angajat", a.salariu "Salariu", 
+       p.nume "Nume popas", initcap(p.tip_popas) "Tip popas",
+       to_char(ip.data_sosire, 'hh24:mi') "Ora sosire",
+       substr(numtodsinterval((ip.data_plecare - ip.data_sosire), 'DAY'), 12, 5) "Durata",
+       (SELECT CASE WHEN salariu <=3000 THEN salariu * 0.005
+                    WHEN salariu <=4500 THEN salariu * 0.01
+                    WHEN salariu > 4500 THEN salariu * 0.015
+               END 
+        FROM angajat ssa
+        WHERE a.id_angajat = ssa.id_angajat
+       ) || 'lei' "bani cheltuiti",
+       'Jud: ' || NVL(l.judet, '-') || ' Loc: ' || NVL(l.localitate, '-') ||
+       ' Str. ' || NVL(l.strada, '-') || ' Nr. ' || NVL(to_char(l.nr), '-') "Locatie popas"
+FROM istoric_popasuri ip JOIN angajat a ON(ip.id_angajat = a.id_angajat)
+                           JOIN popas p ON(ip.id_popas = p.id_popas)
+                           JOIN locatie l ON(p.id_locatie = l.id_locatie)
+WHERE a.tip_angajat = 'SOFER' and
+    to_char(data_sosire, 'dd-mm-yyyy') 
+        = (SELECT to_char(min(sip.data_sosire), 'dd-mm-yyyy') 
+           FROM locatie sl JOIN popas sp ON (sl.id_locatie = sp.id_locatie)
+                             JOIN istoric_popasuri sip ON(sp.id_popas = sip.id_popas)
+           WHERE initcap(sp.nume) = 'Restaurant Ceptura' and initcap(sl.localitate) = 'Ploiesti'
+           )
+ORDER BY a.nume, a.prenume;
+
+-- 2
+
+/* Sa se afiseze numele, prenumele, ce salariu isi doreste, cat de bine este
+ * platit, vechimea la locul de munca curent, la ce firma lucreaza, si ce
+ * depozit pazesc toti paznicii care lucreaza in depozite din localitatea in care
+ * se afla cel mai vizitat popas de soferii de tir si doar pentru paznicii pentru
+ * care a intrat sub paza lor in depozit cel putin un transport de marfa.
+ * Daca un paznic are salariul mai mic decat media salariul din firma in care 
+ * lucreaza, atunci el isi doreste o marire de salariu cu 200 lei, in caz contra 
+ * doresc o marire de 100 lei. Consideram ca un paznic este bine platit daca are
+ * un salariu mai mare decat 3000 lei inclusiv. Suma de 3000lei reprezinta media
+ * salariilor paznicilor din Romania inidiferent de locatia pazita(nu intra doar
+ * depozitele din gestiunea acestei baze de date). Sa se odroneze descrescator
+ * dupa salariu si in caz de egalitate crescator dupa nume si prenume. */
+
+
+SELECT a.nume "Nume angajat", a.prenume "Prenume angajat", 
+        CASE WHEN a.salariu < avgs.salariu THEN a.salariu + 200
+             ELSE a.salariu + 100
+        END "Salariu dorit",
+        DECODE((a.salariu-3000)-abs(a.salariu-3000)         
+         , 0, 'bine platit', 'prost platit') "Cat de bine este platit", 
+        concat(substr(numtodsinterval((sysdate - a.data_angajare), 'DAY'), 8, 3) ||' zile ',
+            substr(numtodsinterval((sysdate - a.data_angajare), 'DAY'), 12, 5)) "Vechime loc munca",
+        f.nume "Nume firma",
+        'Jud: ' || NVL(l.judet, '-') || ' Loc: ' || NVL(l.localitate, '-') ||
+        ' Str. ' || NVL(l.strada, '-') || ' Nr. ' || NVL(to_char(l.nr), '-') "Locatie depozit repartizat",
+        (
+         SELECT DECODE(count(id_echipa_paza)-1, 0, 'Nu are colegi', 1, 
+                 to_char(count(id_echipa_paza)-1) || ' coleg', 
+                 to_char(count(id_echipa_paza)-1) || ' colegi')
+         FROM angajat
+         WHERE id_echipa_paza = a.id_echipa_paza
+         GROUP BY id_echipa_paza
+         ) "Nr. Colegi"
+        
+FROM echipa_paza ep JOIN firma f ON(ep.id_firma = f.id_firma)
+                      JOIN angajat a ON(ep.id_echipa_paza = a.id_echipa_paza)
+                      JOIN depozit d ON(ep.id_echipa_paza = d.id_echipa_paza)
+                      JOIN locatie l ON(d.id_locatie = l.id_locatie)              
+                      JOIN (SELECT round(avg(salariu)) salariu, id_firma
+                            FROM angajat
+                            WHERE tip_angajat = 'PAZNIC'
+                            GROUP BY id_firma
+                            ) avgs ON(avgs.id_firma = f.id_firma)
+                  
+WHERE a.tip_angajat = 'PAZNIC'
+    and l.localitate in (
+                         SELECT sl.localitate
+                         FROM locatie sl JOIN popas sp ON(sl.id_locatie = sp.id_locatie)
+                                           JOIN istoric_popasuri sip ON(sp.id_popas = sip.id_popas)
+                         WHERE sp.id_popas in (
+                                               SELECT id_popas 
+                                               FROM istoric_popasuri
+                                               GROUP BY id_popas
+                                               HAVING count(id_popas) = (
+                                                                         SELECT max(count(id_popas))
+                                                                         FROM istoric_popasuri
+                                                                         GROUP BY id_popas
+                                                                         )
+                                               )
+                         GROUP BY sl.localitate
+                         )
+    and  (
+          SELECT count(depozit_destinatie)
+          FROM transport
+          WHERE depozit_destinatie = d.id_depozit
+             and data_plecare > a.data_angajare
+          GROUP BY depozit_destinatie
+          ) > 1
+ORDER BY a.salariu desc, a.nume, a.prenume;
+
+
+-- 3
+
+/* Sa se afiseze data&ora de plecare, numele si prenumele soferului, ce salariu 
+ * are, cat de bine este platit fata de media salariului din Ro care este de
+ * 3500lei, ce marca de camion a condus, nr de inmatriculare al camionului,
+ * sa se specifice in ce judet a fost inmatriculat camionul, 
+ * iar pentru depozitul de plecare si destinatie sa se precizeze ce firma le detine
+ * si in ce zona se afla, pentru fiecare transport al celor mai bine platiti
+ * soferi din firmele unde sunt angajati, sa se afiseze doar transporturile
+ * in care soferii au folosit acelasi camion ca cel actual pe care il conduc si
+ * doar transporturile realizate incepand cu data in care a fost angajat ultimul
+ * sofer de la toate firmele de transport.
+ * Sa se ordoneze detaliile anterioare despre transport in ordine crescatoare 
+ * dupa data de plecare din primul depozit */
+
+SELECT -- t.id_transport, 
+     to_char(t.data_plecare, 'dd-mm-yyyy') "Data plecare",
+     to_char(t.data_plecare, 'hh24:mi') "Ora",-- data plecare transport
+     ac.nume "Nume sofer", ac.prenume "Prenume", -- cine a condus acest transport
+     ac.salariu "Salariu sofer", -- ce salariu are
+     DECODE((ac.salariu-3500)-abs(ac.salariu-3500)         
+     , 0, 'bine platit', 'prost platit') "Cat de bine este platit", 
+    
+     ac.marca "Camion",
+     ac.nr_inmatriculare "Nr inmatriculare",
+     CASE WHEN substr(ac.nr_inmatriculare, 0, 2)= 'MM' THEN 'Maramures'
+          WHEN substr(ac.nr_inmatriculare, 0, 2)= 'IS' THEN 'Iasi'
+          WHEN substr(ac.nr_inmatriculare, 0, 2)= 'CT' THEN 'Constanta'
+          WHEN substr(ac.nr_inmatriculare, 0, 1)= 'B' THEN 'Bucuresti'
+          ELSE 'Necunoscut'
+     END "Inmatriculat in judetul",
+    
+    (SELECT sf.nume -- cine detine depozitul de plecare
+     FROM firma sf JOIN depozit sd ON (sf.id_firma = sd.id_firma)
+     WHERE sd.id_depozit = t.depozit_plecare) "Proprietar depozit plecare", 
+    (SELECT 'Loc: ' || NVL(sl.localitate, '-') || ' Str. ' -- unde se afla depozitul
+        || NVL(sl.strada, '-') || ' Nr. ' || NVL(to_char(sl.nr), '-')
+     FROM depozit sd JOIN locatie sl ON (sd.id_locatie = sl.id_locatie)
+     WHERE sd.id_depozit = t.depozit_plecare) "Locatie depozit plecare",
+     
+    (SELECT sf.nume -- cine detine depozitul de destinatie
+     FROM firma sf JOIN depozit sd ON (sf.id_firma = sd.id_firma)
+     WHERE sd.id_depozit = t.depozit_destinatie) "Proprietar depozit destinatie", 
+    (SELECT 'Loc: ' || NVL(sl.localitate, '-') || ' Str. ' -- unde se afla depozitul 
+        || NVL(sl.strada, '-') || ' Nr. ' || NVL(to_char(sl.nr), '-')
+     FROM depozit sd JOIN locatie sl ON (sd.id_locatie = sl.id_locatie)
+     WHERE sd.id_depozit = t.depozit_destinatie) "Locatie depozit destinatie"
+     
+FROM transport t JOIN 
+    (
+     SELECT c.id_camion, c.marca, c.nr_inmatriculare, a.id_angajat, a.nume, 
+            a.prenume, a.salariu, a.id_firma
+     FROM angajat a JOIN istoric_camioane_conduse ic ON (a.id_angajat = ic.id_angajat)
+                     JOIN camion c ON(c.id_camion = ic.id_camion)
+     WHERE (a.salariu, a.id_firma) in (
+                                        SELECT max(salariu), id_firma -- obtine salariul mare din firma
+                                        FROM angajat
+                                        WHERE tip_angajat = 'SOFER'
+                                        GROUP BY tip_angajat, id_firma
+                                        )
+            and ic.data_sfarsit is null
+    ) ac ON(t.id_camion = ac.id_camion)
+            
+WHERE t.data_plecare > (SELECT max(data_angajare)
+                        FROM angajat
+                        WHERE tip_angajat = 'SOFER')
+ORDER BY t.data_plecare;
+
+-- 4
+
+/* Sa se afiseze pentru transporturile realizate dupa prima zi de luni de la data
+ * primei angajari a unui sofer in firma care detine camionul care a realizat 
+ * transportul, numele marfii, cantitatea de marfa, tipul marfii transportate
+ * (putem avea alimente, imbracaminte, incaltaminte), marca, nr de inmatriculare
+ * si judetul in care a fost inmatriculat camionul cu care a fost realizat 
+ * transportul, data si ora la care a plecat camionul din depozitul de plecare, 
+ * ce firma detine depozitul de plecare, in ce locatie se afla depozitul de 
+ * plecare, anaog pentru cel de destinatie. Sa se ordoneze crescator dupa data 
+ * si ora de plecare, si descrescator dupa cantitatea de marfa transportata */
+
+SELECT lm.nume "Marfa", lm.cantitate "Cantitate marfa",
+       DECODE(lower(lm.nume), 'carne miel', 'alimente', 'carne porc', 'alimente',
+              'carne pui', 'alimente', 'lapte', 'alimente', 'rosii', 'alimente',
+              'ardei', 'alimente', 'tricouri', 'imbracaminte', 'hanorace', 'imbracaminte',
+              'rochii', 'imbracaminte', 'fuste', 'imbracaminte', 'blugi', 'imbracaminte',
+              'pantofi', 'incaltaminte', 'necunoscut') "Tip aliment",
+       c.marca "Marca camion", c.nr_inmatriculare "Nr. inmatriculare", 
+       CASE WHEN substr(c.nr_inmatriculare, 0, 2)= 'MM' THEN 'Maramures'
+            WHEN substr(c.nr_inmatriculare, 0, 2)= 'IS' THEN 'Iasi'
+            WHEN substr(c.nr_inmatriculare, 0, 2)= 'CT' THEN 'Constanta'
+            WHEN substr(c.nr_inmatriculare, 0, 1)= 'B' THEN 'Bucuresti'
+            ELSE 'Necunoscut'
+       END "Inmatriculat in judetul",
+       to_char(t.data_plecare, 'dd-mm-yyyy hh24:mi') "Data si ora plecare",
+       round(months_between(sysdate, t.data_plecare)) "Nr. luni de la transport",
+       dp.detinator "Detinator depozit plecare", dp.locatie "Locatie depozit plecare", 
+       dd.detinator "Detinator depozit destinatie", dd.locatie "Locatie depozit destinatie"
+
+FROM transport t JOIN camion c ON(t.id_camion = c.id_camion)
+                   JOIN firma f ON(c.id_firma = f.id_firma)
+                   JOIN inventar_transport it ON(t.id_transport = it.id_transport)
+                   JOIN lot_marfa lm ON(it.id_lot_marfa = lm.id_lot_marfa)
+                   JOIN (SELECT id_depozit, sf.nume detinator, 'Loc: ' || NVL(sl.localitate, '-')
+                            || ' Str. ' || NVL(sl.strada, '-') || ' Nr. ' || NVL(to_char(sl.nr), '-') locatie
+                         FROM firma sf JOIN depozit sd ON (sf.id_firma = sd.id_firma)
+                                         JOIN locatie sl ON (sd.id_locatie = sl.id_locatie)
+                        ) dp ON(dp.id_depozit = t.depozit_plecare) 
+                   JOIN (SELECT id_depozit, sf.nume detinator, 'Loc: ' || NVL(sl.localitate, '-')
+                            || ' Str. ' || NVL(sl.strada, '-') || ' Nr. ' || NVL(to_char(sl.nr), '-') locatie
+                         FROM firma sf JOIN depozit sd ON (sf.id_firma = sd.id_firma)
+                                         JOIN locatie sl ON (sd.id_locatie = sl.id_locatie)
+                         ) dd ON(dd.id_depozit = t.depozit_destinatie) 
+ 
+
+WHERE data_plecare >= next_day((SELECT max(sa.data_angajare)
+                                FROM angajat sa JOIN istoric_camioane_conduse sic ON(sa.id_angajat = sic.id_angajat)
+                                                  JOIN camion sc ON(sic.id_camion = sc.id_camion)
+                                WHERE sa.tip_angajat = 'SOFER' and sa.id_firma = f.id_firma
+                                GROUP BY tip_angajat
+                                ), 'MONDAY')
+                                
+ORDER BY t.data_plecare, lm.cantitate desc;
+
+-- 5
+
+/* Pentru toti soferii care lucreaza la una din firmele Road Logistics, Transibo
+ * sau Lextom Trans Asd si care detin cel putin 2 categorii de permis sa se
+ * afiseze numele&prenumele soferului, cat de experimentat e(<1an e INCEPATOR,
+ * <700 zile AVANSAT si in rest PROFESIONIST), cat de bine este platit(se considera
+ * ca un sofer este bine platit daca are un salariu>=4000lei) marca camionului 
+ * si nr de inmatriculare al camionului pe care l-a condus in acel transport, 
+ * data in care a plecat camionul din depozit cu marfa, detinatorul depozitului 
+ * de plecare si destinatie, si analog pentru cel de destinatie */
+
+SELECT a.nume "Nume sofer", a.prenume "Prenume",       
+       CASE WHEN to_number(substr(numtodsinterval((sysdate - a.data_angajare), 'DAY'), 2, 9)) <= 356 THEN 'INCEPATOR'
+            WHEN to_number(substr(numtodsinterval((sysdate - a.data_angajare), 'DAY'), 2, 9)) <= 700 THEN 'AVANSAT'
+            ELSE 'PROFESIONIST'
+       END "Experienta",
+       DECODE((a.salariu-4000)-abs(a.salariu-4000), 0, 'bine platit', 'prost platit') "Cat de bine este platit", 
+       c.marca "Marca camion", c.nr_inmatriculare "Nr. inmatriculare",
+       (SELECT sf.nume -- cine detine depozitul de plecare
+        FROM firma sf JOIN depozit sd ON (sf.id_firma = sd.id_firma)
+        WHERE sd.id_depozit = t.depozit_plecare) "Proprietar depozit plecare", 
+       (SELECT 'Loc: ' || NVL(sl.localitate, '-') || ' Str. ' -- unde se afla depozitul
+                || NVL(sl.strada, '-') || ' Nr. ' || NVL(to_char(sl.nr), '-')
+        FROM depozit sd JOIN locatie sl ON (sd.id_locatie = sl.id_locatie)
+        WHERE sd.id_depozit = t.depozit_plecare) "Locatie depozit plecare",
+        
+       (SELECT sf.nume -- cine detine depozitul de destinatie
+        FROM firma sf JOIN depozit sd ON (sf.id_firma = sd.id_firma)
+        WHERE sd.id_depozit = t.depozit_destinatie) "Proprietar depozit destinatie", 
+       (SELECT 'Loc: ' || NVL(sl.localitate, '-') || ' Str. ' -- unde se afla depozitul 
+                || NVL(sl.strada, '-') || ' Nr. ' || NVL(to_char(sl.nr), '-')
+        FROM depozit sd JOIN locatie sl ON (sd.id_locatie = sl.id_locatie)
+        WHERE sd.id_depozit = t.depozit_destinatie) "Locatie depozit destinatie"    
+       
+FROM angajat a JOIN istoric_camioane_conduse ic ON(a.id_angajat = ic.id_angajat)
+                 JOIN camion c ON(ic.id_camion = c.id_camion)
+                 JOIN transport t ON(c.id_camion = t.id_camion)
+WHERE a.id_angajat in (
+                       SELECT a.id_angajat
+                       FROM angajat a JOIN permis p ON(a.id_angajat = p.id_angajat)
+                                        JOIN firma f ON(f.id_firma = a.id_firma)
+                       WHERE initcap(f.nume) = 'Road Logistics' or initcap(f.nume) = 'Transibo'
+                           or initcap(f.nume) = 'Lextom Trans Asd'
+                       GROUP BY a.id_angajat
+                       HAVING count(p.id_angajat) >= 2
+                       )
+    and ic.data_sfarsit is null;
+
+

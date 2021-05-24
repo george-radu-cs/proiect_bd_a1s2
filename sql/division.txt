@@ -1,0 +1,135 @@
+-- id ul nume prenumele soferilor care au condus cel mult aceleasi marci de camioane precum soferul cu idul 20000
+-- nume Ion Vasile
+select a.id_angajat, a.nume, a.prenume
+from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+              join angajat a on (a.id_angajat = icc.id_angajat)
+where c.marca in 
+            (select c.marca
+             from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+                           join angajat a on (icc.id_angajat = a.id_angajat)
+             where initcap(a.nume) = 'Ion' and initcap(a.prenume) = 'Vasile'
+             )
+group by a.id_angajat, a.nume, a.prenume
+having count(*) <=
+            (select count(c.marca)
+             from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+                           join angajat a on (icc.id_angajat = a.id_angajat)
+             where initcap(a.nume) = 'Ion' and initcap(a.prenume) = 'Vasile'
+             )
+             
+MINUS
+
+select a.id_angajat, a.nume, a.prenume
+from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+              join angajat a on (a.id_angajat = icc.id_angajat)
+where c.marca not in 
+            (select c.marca
+             from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+                           join angajat a on (icc.id_angajat = a.id_angajat)
+             where a.id_angajat = 20000
+             );
+
+
+-----------------------------------------------------------------------------------
+Sa se afiseze pentru fiecare sofer numele, prenumele, salariul si nr de permise detinute. 
+Sa se ordoneze descrescator dupa nr. de permise detinute, descrescator dupa salariu in caz de egalitate,
+si in final crescator dupa nume&prenume.
+-----------------------------------------------------------------------------------
+WITH marca_camion_ang AS -- marcile de camioane conduse de angajatul Ion Vasile
+       (select c.marca
+        from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+                   join angajat a on (icc.id_angajat = a.id_angajat)
+        where initcap(a.nume) = 'Ion' and initcap(a.prenume) = 'Vasile'
+        ),
+
+    division_ang AS -- id-urile angajatilor care conduc cel mult aceleasi marci de camioane precum ang Ion Vasile (inclusiv el)
+       (select icc.id_angajat id_angajat
+        from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+        where c.marca in 
+                    (SELECT *
+                     FROM marca_camion_ang
+                     )
+        group by icc.id_angajat
+        having count(*) <=
+                    (SELECT count(*)
+                     FROM marca_camion_ang
+                     )
+                     
+        MINUS
+        
+        select icc.id_angajat
+        from camion c join istoric_camioane_conduse icc on (c.id_camion = icc.id_camion)
+        where c.marca not in (SELECT * 
+                              FROM marca_camion_ang
+                              )               
+        )
+
+SELECT a.nume, a.prenume, a.salariu, count(*) "Nr. permise auto"
+FROM angajat a JOIN division_ang da ON (a.id_angajat = da.id_angajat)
+               JOIN permis p ON (a.id_angajat = p.id_angajat)
+--WHERE not (initcap(a.nume) = 'Ion' and initcap(a.prenume) = 'Vasile')
+GROUP BY a.nume, a.prenume, a.salariu
+ORDER BY 4 desc, 3 desc, 1, 2;
+-----------------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+
+
+
+
+
+
+
+SELECT DISTINCT id_popas
+FROM istoric_popasuri ip
+WHERE NOT EXISTS
+    (SELECT 1
+     FROM angajat a
+     WHERE tip_angajat = 'SOFER' and salariu = 5000
+     AND NOT EXISTS
+        (SELECT 'x'
+         FROM istoric_popasuri sip
+         WHERE a.id_angajat = sip.id_angajat
+            and sip.id_popas = ip.id_popas
+         )
+     );
+
+
+
+
+
+
+-----------------------------------------------------------------------------------
+-----------------------------------------------------------------------------------
+Sa se afiseze pentru totate popasurile vizitate de toti soferii cu salariu de 5000 lei
+tipul popasului, numele sau si locatia unde se afla.
+-----------------------------------------------------------------------------------
+WITH sofer AS -- soferi cu salariu de 5000 lei
+    (SELECT id_angajat
+     FROM angajat
+     WHERE tip_angajat = 'SOFER' and salariu = 5000
+     ),
+    
+    pop AS -- popasurile vizitate de toti soferii cu salariu de 5000 lei
+    (SELECT id_popas id_popas
+     FROM istoric_popasuri
+     WHERE id_angajat IN (SELECT *
+                          FROM sofer
+                          )
+     GROUP BY id_popas
+     HAVING count(id_angajat) = (SELECT count(*)
+                                 FROM sofer
+                                 )
+     )
+
+SELECT p.tip_popas "Tip popas", p.nume "Nume popas",
+       'Jud: ' || NVL(l.judet, '-') || ' Loc: ' || NVL(l.localitate, '-') ||
+       ' Str. ' || NVL(l.strada, '-') || ' Nr. ' || NVL(to_char(l.nr), '-') "Locatie popas"
+FROM popas p JOIN pop ON (p.id_popas = pop.id_popas)
+             JOIN locatie l ON (p.id_locatie = l.id_locatie)
+-----------------------------------------------------------------------------------
+
+
+
+

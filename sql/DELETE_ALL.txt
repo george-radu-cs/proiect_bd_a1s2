@@ -1,0 +1,30 @@
+drop table istoric_popasuri;
+drop table permis;
+drop table istoric_camioane_conduse;
+drop table angajat;
+drop table inventar_transport;
+drop table inventar_depozit;
+drop table lot_marfa;
+drop table transport;
+drop table camion;
+drop table depozit;
+drop table echipa_paza;
+drop table firma;
+drop table popas;
+drop table locatie;
+
+
+
+DROP SEQUENCE SEQ_LOC;
+DROP SEQUENCE SEQ_POP;
+DROP SEQUENCE SEQ_FIRMA;
+DROP SEQUENCE SEQ_DEP;
+DROP SEQUENCE SEQ_CAM;
+DROP SEQUENCE SEQ_TRAN;
+DROP SEQUENCE SEQ_LOTM;
+DROP SEQUENCE SEQ_INV_DEP;
+DROP SEQUENCE SEQ_INV_TRAN;
+DROP SEQUENCE SEQ_ANG;
+DROP SEQUENCE SEQ_IST_CAM;
+DROP SEQUENCE SEQ_PERM;
+DROP SEQUENCE SEQ_IST_POP;

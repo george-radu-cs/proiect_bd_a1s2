@@ -1,0 +1,136 @@
+-- creearea tabelelor
+
+CREATE TABLE LOCATIE
+    (id_locatie number(10) constraint pk_loc primary key,
+     judet varchar2(25),
+     localitate varchar2(25),
+     strada varchar2(25),
+     nr number(5)
+     );
+     
+CREATE TABLE POPAS
+    (id_popas number(10) constraint pk_pop primary key,
+     id_locatie number(10) constraint fk_pop_loc references 
+                                LOCATIE(id_locatie) on delete set null,
+     nume varchar2(25),
+     tip_popas varchar2(10) constraint tip_pop not null,
+     constraint verif_tip_pop check(tip_popas = 'BENZINARIE' 
+                            or tip_popas = 'MOTEL' or tip_popas = 'RESTAURANT')
+     );
+     
+CREATE TABLE FIRMA
+    (id_firma number(12) constraint pk_firma primary key,
+     nume varchar2(25) constraint uni_nume_firma unique,
+     tip_firma varchar2(10) constraint tip_firma not null,
+     constraint verif_tip_firma check(tip_firma = 'CLIENT' or tip_firma = 'PAZA'
+                                        or tip_firma = 'TRANSPORT')
+     );
+     
+CREATE TABLE ECHIPA_PAZA
+    (id_echipa_paza number(5) constraint pk_epaza primary key,
+     id_firma number(12) constraint fk_epaza_firma references 
+                            FIRMA(id_firma) on delete cascade
+     );
+     
+CREATE TABLE DEPOZIT
+    (id_depozit number(5) constraint pk_dep primary key,
+     id_locatie number(5) constraint fk_dep_loc references 
+                            LOCATIE(id_locatie) on delete set null,
+     id_echipa_paza number(5) constraint fk_dep_epaza 
+                references ECHIPA_PAZA(id_echipa_paza) on delete set null,
+     id_firma number(12) constraint fk_dep_firma references FIRMA(id_firma) 
+                            on delete set null
+     );
+
+CREATE TABLE CAMION
+    (id_camion number(5) constraint pk_cam primary key,
+     marca varchar2(10),
+     nr_inmatriculare varchar2(10) constraint uni_nr_ing_cam unique,
+     id_firma number(12) constraint fk_cam_firma references 
+                            FIRMA(id_firma) on delete set null
+     );
+     
+CREATE TABLE TRANSPORT
+    (id_transport number(10) constraint pk_trans primary key,
+     depozit_plecare number(5) constraint fk_trans_dep_p references 
+                                    DEPOZIT(id_depozit) on delete cascade,
+     depozit_destinatie number(5) constraint fk_trans_dep_d references 
+                                    DEPOZIT(id_depozit) on delete cascade,
+     id_camion number(5) constraint fk_trans_cam references 
+                            CAMION(id_camion) on delete cascade,
+     data_plecare date default sysdate
+     );
+     
+CREATE TABLE LOT_MARFA
+    (id_lot_marfa number(10) constraint pk_lotm primary key,
+     nume varchar2(25) constraint nume_lotm not null,
+     cantitate number(8, 2) constraint cant_lotm not null
+     );
+     
+CREATE TABLE INVENTAR_DEPOZIT
+    (id_inventar_depozit number(10) constraint pk_inv_dep primary key,
+     id_depozit number(5) constraint fk_invdep_dep references 
+                                DEPOZIT(id_depozit) on delete cascade,
+     id_lot_marfa number(10) constraint fk_invdep_lotm references 
+                                LOT_MARFA(id_lot_marfa) on delete cascade,
+     data_sosire date default sysdate,
+     data_plecare date default sysdate
+     );
+     
+CREATE TABLE INVENTAR_TRANSPORT
+    (id_inventar_transport number(10),
+     id_lot_marfa number(10) constraint fk_invtran_lotm references
+                                LOT_MARFA(id_lot_marfa) on delete cascade,
+     id_transport number(10) constraint fk_invtran_tran references 
+                                TRANSPORT(id_transport) on delete cascade,
+     constraint pk_inv_tran primary key(id_inventar_transport, id_lot_marfa)
+     );
+     
+CREATE TABLE ANGAJAT
+    (id_angajat number(10) constraint pk_ang primary key,
+     nume varchar(25),
+     prenume varchar(25),
+     nr_telefon varchar(14),
+     data_angajare date default sysdate,
+     salariu number(10),
+     id_firma number(12),
+     tip_angajat char(6) constraint tip_ang_nn not null,
+     id_echipa_paza number(5),
+     constraint verf_tip check(tip_angajat = 'PAZNIC' or tip_angajat = 'SOFER'),
+     constraint fk_ang_epaza foreign key(id_echipa_paza) 
+        references ECHIPA_PAZA(id_echipa_paza) on delete set null,
+     constraint fk_ang_firma foreign key(id_firma) 
+        references FIRMA(id_firma) on delete set null
+     );
+     
+CREATE TABLE ISTORIC_CAMIOANE_CONDUSE
+    (id_istoric_camioane_conduse number(10) constraint pk_ist_cam primary key,
+     id_angajat number(10) constraint fk_icam_ang references 
+                            ANGAJAT(id_angajat) on delete cascade,
+     id_camion number(5) constraint fk_icam_cam references 
+                            CAMION(id_camion) on delete cascade,
+     data_inceput date default sysdate,
+     data_sfarsit date default sysdate
+     );
+     
+CREATE TABLE PERMIS
+    (id_permis number(10),
+     id_angajat number(10) constraint fk_perm_ang references 
+                            ANGAJAT(id_angajat) on delete cascade,
+     categorie char(3),
+     data date default sysdate,
+     constraint pk_perm primary key(id_permis, id_angajat),
+     constraint verf_catg check(categorie in ('AM', 'A1', 'A2', 'A', 'B1', 'B',
+        'BE', 'C1', 'C1E', 'C', 'CE', 'D1', 'D1E', 'D', 'DE', 'Tr', 'Tb', 'Tv'))
+     );
+     
+CREATE TABLE ISTORIC_POPASURI
+    (id_istoric_popas number(20),
+     id_popas number(10) constraint fk_istpop_pop references POPAS(id_popas),
+     id_angajat number(10) constraint fk_istpop_ang references ANGAJAT(id_angajat),
+     data_sosire date default sysdate,
+     data_plecare date default sysdate,
+     constraint pk_ist_pop primary key(id_istoric_popas, id_popas, id_angajat, data_sosire)
+     );
+
+
