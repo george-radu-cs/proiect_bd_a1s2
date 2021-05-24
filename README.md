@@ -6,6 +6,7 @@ mărfuri din România.
 
 ## TODO
 
-- verifică corectitudinea cerințelor realizate până acum
-- completează celelalte cerințe
+- arbori algebrici pentru optimizarea unei cerinte + expresie algebrica
+- normalizari BCNF, FN4, FN5
+- explica denormalizarea realizata
 - completeaza README cu celelalte detalii legate de proiect

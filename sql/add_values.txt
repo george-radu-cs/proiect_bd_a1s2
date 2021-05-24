@@ -1,12 +1,15 @@
 /* pentru tabelul Locatie se creeaza urmatoarea secventa SEQ_LOC pentru inserarea
- * inregistrarilor in tabelul Locatie */
+ * inregistrarilor in tabelul Locatie, se va proceda analog pentru celelalte
+ * exemple fara a se mai specifica intr-un comentariu */
 CREATE SEQUENCE SEQ_LOC
 INCREMENT BY 10
 START WITH 10
 MAXVALUE 1000000000
 NOCYCLE;
 
--- inseram date in tabelele create anterior
+/* se insereaza date in tabelul Locatie folosind secventa anterior creata
+ * utilizandu-se metoda implicita | se va proceda analog pentru inserarea de
+ * date in celelalte tabele fara a se mai specifica intr-un comentariu */
 INSERT INTO LOCATIE
 VALUES(SEQ_LOC.NEXTVAL, 'Prahova', 'Ploiesti', 'Libertatii', 13);
 

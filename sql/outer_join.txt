@@ -1,18 +1,16 @@
-Pentru fiecare camion sa se afiseze marca, nr de inmatriculare, numele firmei,
-de ce soferi a condus(pentru fiecare sofer sa se precizeze numele, prenumele
-si salariul, in cazul in care un camion nu a fost condus de un sofer sa se
-inlocuiasca aceste coloane cu '-') dar si data de plecare pentru fiecare
-transport realizat de sofer cu acest camion. Daca unui angajat i-a fost
-alocat un camion dar nu a realizat niciun transport in loc de data sa fie 
-afisat mesajul 'nu a realizat transporturi'. Sa se afiseze informatiile despre
-angajatii doar daca sunt soferi, au fost angajati inainte de data de
-13 sept 2020 si detine cel putin un permis, in cazul in care un camion a fost
-condus de un sofer care nu indeplineste aceste cerinte vom inlocui coloanele
-cu informatii despre angajat cu '-'. Sa se excluda camioanele de marca IVECO.
+/* Pentru fiecare camion sa se afiseze marca, nr. de inmatriculare, numele firmei,
+ * de ce soferi a fost condus(pentru fiecare sofer sa se precizeze numele, 
+ * prenumele si salariul, in cazul in care un camion nu a fost condus de un
+ * sofer sa se inlocuiasca aceste coloane cu '-'), dar si data de plecare pentru
+ * fiecare transport realizat de sofer cu acest camion. Daca unui angajat i-a 
+ * fost alocat un camion dar nu a realizat niciun transport in loc de data sa 
+ * fie afisat mesajul 'nu a realizat transporturi'. Sa se afiseze informatiile
+ * despre angajatii doar daca sunt soferi, au fost angajati inainte de data de
+ * 13 sept 2020 si detin cel putin un permis auto, in cazul in care un camion a
+ * fost condus de un sofer care nu indeplineste aceste cerinte se vor inlocui 
+ * coloanele cu informatii despre angajat cu '-'. 
+ * Sa se excluda camioanele de marca IVECO. */
 
--=-----------------------------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------------------------
-=============================================================================================================
 WITH ang AS -- soferii angajati inainte de 13 sept 2020 care detin cel mult 2 permise auto
     (SELECT p.id_angajat, a.nume, a.prenume, a.salariu
      FROM angajat a JOIN permis p ON (a.id_angajat = p.id_angajat)
