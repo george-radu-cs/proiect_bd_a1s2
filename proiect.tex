@@ -745,10 +745,292 @@ id\_lot\_marfa\# & nume & cantitate \\
 \end{table}
 
 \newpage
-BCNF
-FN4
-FN5
-denormalizare
+\emph{Obs}: Datele din următoarele tabele/exemple sunt fictive, nu sunt prezente în baza de date creată. S-a ales această metodă pentru o exemplificare mai bună per exemplu. De asemenea vom avea convenția de a adăuga inainte de fiecare cheie primară un string care să semnifice pentru ce entitate este desemnată cheia primară.
+
+Se consideră că o relație R se află în forma normală \textbf{Boyce-Codd} dacă și numai dacă fiecare determinant este o cheie candidat. Un determinant reprezintă un atribut sau o mulțime de atribute neredundante, care constituie un identificator unic pentru un alt atribut sau o altă mulțime de date.
+
+Se dă relația \emph{SOFER\_CONDUCE\_CAMION} în care un șofer poate conduce mai multe camioane care o preluăm din forma normală 1.
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relatia \emph{SOFER\_CONDUE\_CAMION}}\label{tab12}
+\resizebox{\columnwidth}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+id\_istoric         & id\_      & id\_     & id\_  & marca & nr\_    & data\_  & data\_  \\
+camioane\_conduse\# & angajat\# & camion\# & firma & & inmatriculare & inceput & sfarsit \\
+\hline
+ICC1 & A1 & C1 & F1 & DAF & PX13ASD & 06-06-2019 & 07-07-2019 \\
+\hline
+ICC2 & A2 & C2 & F1 & DAF & PX21QWE & 12-04-2019 & 11-11-2019 \\
+\hline
+ICC3 & A3 & C3 & F2 & MAN & PX14HGA & 06-05-2019 & 01-12-2019 \\
+\hline
+ICC3 & A4 & C4 & F3 & DAF & PX13ICC & 06-01-2019 & 07-02-2019 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+În relația anterioară se găsește determinantul \emph{X=nr\_inmatriculare} care îl determină funcțional pe \emph{K3=id\_camion\#} și \emph{Y=\{id\_firma, marca\}}, \emph{X} fiind cheie candidat. Astfel aplicăm regula Casey Delobel pentru \emph{R(K1\#, K2\#, K3\#, X, Y, Z)}, unde \emph{K1=id\_istoric\_camioane\_conduse\#}, \emph{K2=id\_angajat\#}, \emph{Z=\{data\_inceput, data\_sfarsit\}}. Astfel se ajunge la proiecțiile: \emph{R1(K1\#, K2\#, X, Z)} și \emph{R2(X\#, K3)} care au adus relația în \emph{BCNF}.
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{R1(K1\#, K2\#, X, Z)}\label{tab12-1}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+id\_istoric         & id\_      & nr\_    & data\_  & data\_  \\
+camioane\_conduse\# & angajat\# & inmatriculare & inceput & sfarsit \\
+\hline
+ICC1 & A1 & PX13ASD & 06-06-2019 & 07-07-2019 \\
+\hline
+ICC2 & A2 & PX21QWE & 12-04-2019 & 11-11-2019 \\
+\hline
+ICC3 & A3 & PX14HGA & 06-05-2019 & 01-12-2019 \\
+\hline
+ICC3 & A4 & PX13ICC & 06-01-2019 & 07-02-2019 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{R2(X\#, K3)}\label{tab12-2}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+nr\_            & id\_   & marca & id\_  \\
+inmatriculare\# & camion &       & firma \\
+\hline
+PX13ASD & C1 & DAF & F1 \\
+\hline
+PX21QWE & C2 & DAF & F1 \\
+\hline
+PX14HGA & C3 & MAN & F2 \\
+\hline 
+PX13ICC & C4 & DAF & F3 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+Analog se procedează și pentru relația \emph{transport}. (În exemplu se vor trece doar atributele de folos pentru exemplul dat)
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{transport}}\label{tab13}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+id\_depozit & id\_depozit    & id\_lot   & id\_     & nr\_          \\
+\_plecare\# & \_destinatie\# & \_marfa\# & camion\# & inmatriculare \\
+\hline
+D1 & D5 & LM1 & C1 & PX13ASD \\
+\hline
+D1 & D6 & LM2 & C1 & PX13ASD \\
+\hline
+D2 & D5 & LM1 & C1 & PX13ASD \\
+\hline
+D2 & D6 & LM2 & C1 & PX13ASD \\
+\hline
+D1 & D3 & LM5 & C3 & PX14HGA \\
+\hline 
+D1 & D3 & LM4 & C4 & PX13ICC \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+Se găsește analog determinantul \emph{X=nr\_inmatriculare} care determină \\funcțional pe \emph{K4=id\_camion\#}. Se mai fac notațiile \\\emph{K1=id\_depozit\_plecare\#}, \emph{K2=id\_depozit\_destinatie\#}, \emph{K3=id\_lot\_marfa\#}. \\Astfel se ajunge la proiecțiile \emph{R1(K1\#, K2\#, K3\#, X)} și \emph{R2(X\#, K4)}.
+
+\newpage
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{R1(K1\#, K2\#, K3\#, X)}}\label{tab13-1}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+id\_depozit & id\_depozit    & id\_lot   & nr\_          \\
+\_plecare\# & \_destinatie\# & \_marfa\# & inmatriculare \\
+\hline
+D1 & D5 & LM1 & PX13ASD \\
+\hline
+D1 & D6 & LM2 & PX13ASD \\
+\hline
+D2 & D5 & LM1 & PX13ASD \\
+\hline
+D2 & D6 & LM2 & PX13ASD \\
+\hline
+D1 & D3 & LM5 & PX14HGA \\
+\hline 
+D1 & D3 & LM4 & PX13ICC \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{R2(X\#, K4)}}\label{tab13-2}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+nr\_            & id\_ \\
+inmatriculare\# & camion \\
+\hline
+PX13ASD & C1 \\
+\hline
+PX13ASD & C1 \\
+\hline
+PX13ASD & C1 \\
+\hline
+PX13ASD & C1 \\
+\hline
+PX14HGA & C3 \\
+\hline 
+PX13ICC & C4 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+O relație se află în formă normală 4 (FN4) dacă și numai dacă relația este în BCNF și nu conține relații m:n independente.
+
+Se dă relația anterior transformată(\emph{transport}) în BCNF \emph{R(id\_depozit\_\\destinatie\#, id\_depozit\_plecare\#, id\_lot\_marfa\#, nr\_inmatriculare\#)}
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{transport}}\label{tab14}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+id\_depozit & id\_depozit    & id\_lot   & nr\_            \\
+\_plecare\# & \_destinatie\# & \_marfa\# & inmatriculare\# \\
+\hline
+D1 & D5 & LM1 & PX13ASD \\
+\hline
+D1 & D6 & LM2 & PX13ASD \\
+\hline
+D2 & D5 & LM1 & PX13ASD \\
+\hline
+D2 & D6 & LM2 & PX13ASD \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+în care se găsesc următoarele dependențe multiple:
+
+\begin{itemize}
+    \item nr\_inmatriculare$\rightarrow\rightarrow$id\_depozit\_plecare
+    \item nr\_inmatriculare$\rightarrow\rightarrow$id\_depozit\_destinatie
+    \item nr\_inmatriculare$\rightarrow\rightarrow$id\_lot\_marfa
+\end{itemize}
+
+și se obțin următoarele rezultate după aplicarea lui FN4:
+
+\begin{itemize}
+    \item \emph{transport1=R1(nr\_inmatriculare\#, id\_depozit\_plecare)}
+    \item \emph{transport2=R2(nr\_inmatriculare\#, id\_depozit\_destinatie)}
+    \item \emph{transport3=R3(nr\_inmatriculare\#, id\_lot\_marfa)}
+\end{itemize}
+
+cu următoarele:
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{transport1}}\label{tab14-1}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+nr\_            & id\_depozit \\
+inmatriculare\# & \_plecare\# \\
+\hline
+PX13ASD & D1 \\
+\hline
+PX13ASD & D2 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{transport2}}\label{tab14-2}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+nr\_            & id\_depozit    \\
+inmatriculare\# & \_destinatie\# \\
+\hline
+PX13ASD & D5\\
+\hline
+PX13ASD & D6 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{transport3}}\label{tab14-3}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+nr\_            & id\_lot\_ \\
+inmatriculare\# & marfa\#   \\
+\hline
+PX13ASD & LM1 \\
+\hline
+PX13ASD & LM2 \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+\newpage
+
+O relație se află în formă normală 5 (FN5) dacă și numai dacă se află în FN4 și nu conține dependențe ciclice.
+
+Se dă exemplul următor: un lot de marfă poate fi transportat de la mai multe depozite la mai multe depozite și poate să fie transportat de mai multe camioane. Aceasta relație este una de tip 3 și are reprezentarea:
+
+\includegraphics[width=\textwidth]{fn5_rel_3.png}
+\label{rel3}
+\centering Relatie tip 3
+
+\justifying 
+cu posibilele întregistrări:
+
+\begin{table}[!htbp]
+\begin{center}
+    \caption{Relația \emph{transport}}\label{tab15}
+\resizebox{\width}{!}{\begin{tabular}{| l | l | l | l | l | l | l | l | l | l | l | l |}
+\hline
+id\_depozit & id\_depozit    & id\_lot   & nr\_            \\
+\_plecare\# & \_destinatie\# & \_marfa\# & inmatriculare\# \\
+\hline
+D1 & D5 & LM1 & PX13ASD \\
+\hline
+D1 & D6 & LM2 & PX13ASD \\
+\hline
+D2 & D5 & LM1 & PX13ASD \\
+\hline
+D2 & D6 & LM2 & PX13ASD \\
+\hline
+\end{tabular}}
+\end{center}
+\end{table}
+
+Această relație de tip 3 poate fi echivalentă cu 4 relații de tip 2 doar dacă aceste relații de tip 2 sunt ciclice.
+
+\includegraphics[width=\textwidth]{fn5_rel_2.png}
+\label{rel2}
+\centering Relatie tip 2
+
+\justifying Relația fiind ciclică, atunci când se va face o interogare cu toate join-urile se va obține un rezultat echivalent cu cel obținut din interogarea relației de tip 3. Anterior au fost menționate condițiile ca o relație să fie în FN5, printre care și condiția de a nu conține dependențe ciclice, motiv pentru care cele 3 relații de tip 2 compun o diagramă care conține dependențe ciclice, deci relația nu se află în FN5. În schimb relația de tip 3 se află în FN5.
+
+\section{Denormalizare}
+Denormalizarea presupune mărirea redundanței pentru a reduce numărul de join-uri care trebuie efectuate pentru rezolvarea unei interogări, astfel se micșorează timpul de execuție.
+
+$\rightarrow$Exemplu când denormalizarea nu este utilă:
+
+În tabelul \emph{LOT\_MARFA} în care sunt stocate loturile de marfă din transporturile efectuate. Loturile de marfă au atributele \textbf{nume} și \textbf{cantitate} care pot conține valori repetitive, aceeași cantitate putând aparținând mai multor loturi de marfă, analog pentru nume. Dacă în baza de date există un tabel separat pentru cantitate și unul pentru nume, fiecare împreună cu id-ul lotului de marfă căruia îi corespunde, este necesar să se aplice procesul de denormalizare în urma căruia atributele nume și cantitate se vor plasa în tabelul \emph{LOT\_MARFA} întrucât ar fi ineficient ca în interogări aceste atribute să se afle în tabele separate datorită unui dublu join care ar mări timpul de execuție în cazul în care se dorește aflarea tuturor informațiilor despre un anumit lot de marfă.
+
+$\rightarrow$Exemplu când denormalizarea este utilă:
+În tabelul \emph{ANGAJAT} există atributul \textbf{id\_firma} care reprezintă o cheie externă pentru o cheie primară din tabelul \emph{FIRMA}, acest atribut desemnând la ce firmă lucrează un angajat. Cu toate acestea se poate afla la ce firmă lucrează un angajat dacă se realizeaza un join între \emph{ANGAJAT}, \emph{ISTORIC\_CAMIOANE\_CONDUSE}, \emph{CAMION} și \emph{FIRMA} pentru un angajat de tip șofer și un join între \emph{ANGAJAT}, \emph{ECHIPA\_PAZA} și \emph{FIRMA}. Este deja evident că pentru aflarea acestei informații (la ce firmă lucreaza un angajat/ce angajați lucreaza la o firmă) o interogare ar avea un număr de join-uri prea mare pentru ce informație se dorește. Astfel se realizează denormalizarea acestui tabel prin adăugarea atributului \textbf{id\_firma} pentru a reduce nr. de join-uri din posibilele interogări dorite, lucru care rezultă într-un timp de execuție mai mic. Astfel această denormalizare se dovedește utilă.
+
 \newpage
 
 \newpage
@@ -756,7 +1038,7 @@ denormalizare
 
 Se cer următoarele informații:
 
-Pentru fiecare camion sa se afiseze marca, nr. de inmatriculare, numele firmei, de ce soferi a fost condus(pentru fiecare sofer sa se precizeze numele, prenumele si salariul, in cazul in care un camion nu a fost condus de un sofer sa se inlocuiasca aceste coloane cu '-'), dar si data de plecare pentru fiecare transport realizat de sofer cu acest camion. Daca unui angajat i-a fost alocat un camion dar nu a realizat niciun transport in loc de data sa fie afisat mesajul 'nu a realizat transporturi'. Sa se afiseze informatiile despre angajatii doar daca sunt soferi, au fost angajati inainte de data de 13 sept 2020 si detin cel putin un permis auto, in cazul in care un camion a fost condus de un sofer care nu indeplineste aceste cerinte se vor inlocui coloanele cu informatii despre angajat cu '-'. Sa se excluda camioanele de marca IVECO.
+Pentru fiecare camion sa se afiseze marca, nr. de inmatriculare, numele firmei, de ce soferi a fost condus(pentru fiecare sofer sa se precizeze numele, prenumele si salariul, in cazul in care un camion nu a fost condus de un sofer sa se inlocuiasca aceste coloane cu '-'), dar si data de plecare pentru fiecare transport realizat de sofer cu acest camion. Daca unui angajat i-a fost alocat un camion dar nu a realizat niciun transport in loc de data sa fie afisat mesajul 'nu a realizat transporturi'. Sa se afiseze informațiile despre angajatii doar daca sunt soferi, au fost angajati inainte de data de 13 sept 2020 si detin cel putin un permis auto, in cazul in care un camion a fost condus de un sofer care nu indeplineste aceste cerinte se vor inlocui coloanele cu informații despre angajat cu '-'. Sa se excluda camioanele de marca IVECO.
 
 Prima cerere \emph{SQL} implementată:
 
