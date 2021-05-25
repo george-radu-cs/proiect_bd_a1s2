@@ -774,7 +774,7 @@ SELECT c.marca, c.nr_inmatriculare, f.nume,
        NVL(a.nume, '-') "Nume sofer", NVL(a.prenume, '-') "Prenume sofer", 
        NVL(to_char(a.salariu), '-') "Salariu sofer",
        NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport"
-FROM camion c FULL OUTER JOIN firma f ON (c.id_firma = f.id_firma)
+FROM camion c JOIN firma f ON (c.id_firma = f.id_firma)
               FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
               FULL OUTER JOIN ang a ON (icc.id_angajat = a.id_angajat)
               FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
@@ -800,7 +800,7 @@ R1=SELECT(CAMION, upper(marca)!='IVECO')
 R2=PROJECT(R1, id_camion, id_firma, marca, nr_inmatriculare}
 R3=SELECT(FIRMA, tip_firma='TRANSPORT')
 R4=PROJECT(R3, id_firma, nume)
-R5=FULL OUTER JOIN(R2, R4, id_firma)
+R5=JOIN(R2, R4, id_firma)
 R6=PROJECT(TRANSPORT, id_camion, data_plecare)
 R7=FULL OUTER JOIN(R5, R6, id_camion)
 R8=PROJECT(ISTORIC_CAMIOANE_CONDUSE, id_camion, id_angajat, data_inceput, data_sfarsit)
@@ -815,7 +815,13 @@ R16=FULL OUTER JOIN(R10, R15, id_angajat)
 Rez=R17=PROJECT(R16, marca, nr_inmatriculare, nume, NVL(nume, '-'), NVL(prenume, '-'), NVL(to_char(salariu), '-'), NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi'))
 \end{lstlisting}
 
-Se fac următoarele optimzări:
+Se observă faptul că deja o parte a arborelui este optimizată folosind proprietatea de compunere a proiecțiilor și de compunere a selecțiilor.
+
+Se fac următoarele optimizări:
+
+\begin{itemize}
+    \item se folosește regula de optimizare 1 care spune că selecțiile se execută cât mai devreme posibil pentru R10, selecție care ar putea fi realizată mai devreme, totodată se va folosi și proprietatea 2 care spune că operațiile de join și produs cartezian sunt asociative. În alegerea primelor join-uri vom folosi și regula de optimizare 3 care spune că dacă există mai multe join-uri atunci cel care se execută primul este cel mai restrictiv. Astfel se va face un \emph{FULL OUTER JOIN} între \emph{CAMION} și \emph{ISTORIC\_CAMIOANE\_CONDUSE} după un alt \emph{FULL OUTER JOIN} între rezultatul anterior și \emph{TRANSPORT} după care vom face selecția care anterior era R10 și o proiecție pentru a elimina atributele nefolositoare.
+\end{itemize}
 
 \newpage
 Și se ajunge la următorul arborele algebric:
@@ -834,15 +840,15 @@ R5=PROJECT(TRANSPORT, id_camion, data_plecare_
 R6=FULL OUTER JOIN(R4, R5, id_camion)
 R7=SELECT(R6, (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate)) or t.data_plecare is null)
 R8=PROJECT(R7, icc.id_camion, icc.id_angajat, t.data_plecare, c.marca, c.nr_inmatriculare, c.id_firma)
-R9=SELECT(ANGAJAT, tip_angajat = 'SOFER' and to_char(data_angajare, 'dd-mm-yyyy') < '13-9-2020')
-R10=PROJECT(R9, id_angajat, nume, prenume, salariu)
-R11=PROJECT(PERMIS, id_angajat)
-R12=JOIN(R10, R11, count(p.id_angajat) >= 1)
+R9=SELECT(FIRMA, tip_firma='TRANSPORT')
+R10=PROJECT(R9, id_firma, nume)
+R11=JOIN(R8, R10, id_firma)
+R12=SELECT(ANGAJAT, tip_angajat = 'SOFER' and to_char(data_angajare, 'dd-mm-yyyy') < '13-9-2020')
 R13=PROJECT(R12, id_angajat, nume, prenume, salariu)
-R14=FULL OUTER JOIN(R8, R13, id_angajat)
-R15=SELECT(FIRMA, tip_firma='TRANSPORT')
-R16=PROJECT(id_firma, nume)
-R17=FULL OUTER JOIN(R14, R16, id_firma)
+R14=PROJECT(PERMIS, id_angajat)
+R15=JOIN(R13, R14, count(p.id_angajat) >= 1)
+R16=PROJECT(R15, id_angajat, nume, prenume, salariu)
+R17=FULL OUTER JOIN(R11, R16, id_angajat)
 Rez=R18=PROJECT(R17, marca, nr_inmatriculare, nume, NVL(nume, '-'), NVL(prenume, '-'), NVL(to_char(salariu), '-'), NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi'))
 \end{lstlisting}
 
@@ -862,16 +868,17 @@ WITH ang AS -- soferii angajati inainte de 13 sept 2020 care detin cel mult 2 pe
       FROM camion c FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
                     FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
       WHERE c.marca != 'IVECO' and
-            t.data_plecare is null or icc.data_inceput is null or 
-            (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate))
+            (t.data_plecare is null or icc.data_inceput is null or 
+             (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate))
+             )
       )
     
 SELECT tc.marca, tc.nr_inmatriculare, f.nume, 
        NVL(a.nume, '-') "Nume sofer", NVL(a.prenume, '-') "Prenume sofer", 
        NVL(to_char(a.salariu), '-') "Salariu sofer",
        NVL(to_char(tc.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport" 
-FROM tc FULL OUTER JOIN ang a ON (tc.id_angajat = a.id_angajat)
-        FULL OUTER JOIN firma f ON (tc.id_firma = f.id_firma)
+FROM tc JOIN firma f ON (tc.id_firma = f.id_firma)
+        FULL OUTER JOIN ang a ON (tc.id_angajat = a.id_angajat)
 WHERE f.tip_firma = 'TRANSPORT';
 \end{lstlisting}
 

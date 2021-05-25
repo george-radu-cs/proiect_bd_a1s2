@@ -387,7 +387,7 @@ SELECT c.marca, c.nr_inmatriculare, f.nume,
        NVL(a.nume, '-') "Nume sofer", NVL(a.prenume, '-') "Prenume sofer", 
        NVL(to_char(a.salariu), '-') "Salariu sofer",
        NVL(to_char(t.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport"
-FROM camion c FULL OUTER JOIN firma f ON (c.id_firma = f.id_firma)
+FROM camion c JOIN firma f ON (c.id_firma = f.id_firma)
               FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
               FULL OUTER JOIN ang a ON (icc.id_angajat = a.id_angajat)
               FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
@@ -525,8 +525,9 @@ WITH ang AS -- soferii angajati inainte de 13 sept 2020 care detin cel mult 2 pe
       FROM camion c FULL OUTER JOIN istoric_camioane_conduse icc ON (c.id_camion = icc.id_camion)
                     FULL OUTER JOIN transport t ON (c.id_camion = t.id_camion)
       WHERE c.marca != 'IVECO' and
-            t.data_plecare is null or icc.data_inceput is null or 
-            (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate))
+            (t.data_plecare is null or icc.data_inceput is null or 
+             (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate))
+             )
       )
     
 SELECT tc.marca, tc.nr_inmatriculare, f.nume, 
@@ -534,6 +535,6 @@ SELECT tc.marca, tc.nr_inmatriculare, f.nume,
        NVL(to_char(a.salariu), '-') "Salariu sofer",
        NVL(to_char(tc.data_plecare, 'dd-mm-yyyy'), 'nu a realizat transporturi') "Data transport" 
 FROM tc FULL OUTER JOIN ang a ON (tc.id_angajat = a.id_angajat)
-        FULL OUTER JOIN firma f ON (tc.id_firma = f.id_firma)
+        JOIN firma f ON (tc.id_firma = f.id_firma)
 WHERE f.tip_firma = 'TRANSPORT';              
 
