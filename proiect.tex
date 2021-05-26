@@ -76,15 +76,15 @@ Modelul de date respectă anumite restricții de funcționare.
     \item Un depozit este păzit la un moment dat de o singură echipă de pază.
     \item Un depozit are o listă de inventar cu ce mărfuri au intrat/ieșit împreună cu data și ora.
     \item Un lot de marfă poate să fie transportat de mai multe ori, nu neapărat î1 același transport, și nu neapărat între aceleași depozite.
-    \item O echipă de pază aparține unei firme de pază, firmă de pază care poate avea mai multe echipe de pază care să păzească mai multe depozite aflate în diferite locații.
+    \item O echipă de pază aparține unei firme de pază, firmă de pază care poate avea mai multe echipe de pază, o firmă putând astfel să păzească mai multe depozite aflate în diferite locații.
     \item Un angajat poate să fie ori paznic ori șofer.
     \item Un transport de marfă se realizează prin intermediul unui camion \\încărcat cu marfă de la un depozit la altul.
     \item Un șofer poate să oprească în timpul transportului la mai multe popasuri pentru odihnă/mâncare sau alimentare. La popasuri pot veni mai mulți șoferi.
     \item Un popas se află intr-o unică locație și poate fi o benzinărie, un motel sau un restaurant. Nu ne interesează detalii specifice despre un popas cum ar fi ce mâncare vinde un restaurant, sau cât costa o cameră la un motel.
-    \item Un șofer poate să aibă mai multe permise pentru mai multe categorii, poate chiar să i se anuleze un permis și să trebuiască să îl obțină din nou.
-    \item Un șofer trebuie să conducă un camion, dar poate să conducă mai multe camioane(nu in acelasi timp) în funcție de problemele tehnice legate de camion și necesitățile firmei.
+    \item Un șofer poate să aibă mai multe permise pentru mai multe categorii, poate chiar să i se anuleze/expire un permis și să trebuiască să îl obțină din nou.
+    \item Un șofer trebuie să conducă un camion, dar poate să conducă mai multe camioane(nu în același timp) în funcție de problemele tehnice legate de camion și necesitățile firmei.
     \item O firmă de transport deține mai multe camioane, iar un camion este deținut de o singură firmă de transport.
-    \item Transportul de marfă se face între 2 depozit, se transportă mai multe loturi de marfă. Pentru un transport vom reține și data din momentul în care a început transportul. Pentru fiecare transport se va folosi un singur camion condus de un șofer profesionist.
+    \item Transportul de marfă se face între 2 depozite, se transportă mai multe loturi de marfă. Pentru un transport vom reține și data din momentul în care a început transportul. Pentru fiecare transport se va folosi un singur camion condus de un șofer profesionist.
 \end{itemize}
 
 \newpage
@@ -297,7 +297,7 @@ Schemele relaționale corespunzătoare diagramei conceptuale din Figura 2 sunt u
     \item SOFER(id\_angajat\#)
     \item PERMIS(id\_permis\#, id\_angajat\#, categorie, data, ora)
     \item ISTORIC\_CAMIOANE\_CONDUSE(id\_istoric\_camioane\_conduse\#,\\ id\_angajat, id\_camion, data\_inceput, data\_sfarsit)
-    \item ISTORIC\_POPASURI(id\_istoric\_popas\#, id\_popas\#, id\_angajat\#,\\ data\_sosire, ora\_sosire, data\_plecare, ora\_plecare)
+    \item ISTORIC\_POPASURI(id\_istoric\_popas\#, id\_popas\#, id\_angajat\#,\\ data\_sosire\#, ora\_sosire\#, data\_plecare, ora\_plecare)
 \end{itemize}
 
 \section{Forme normale}
@@ -348,7 +348,7 @@ id\_angajat\# & nume & prenume & .. & tip\_angajat & id\_permis\# & categorie & 
 
 Pentru ca relația \emph{SOFER\_detine\_PERMIS} să fie în formă normală 2 (FN2) trebuie să fie mai întâi în FN1, lucru realizat anterior, și în plus trebuie să indeplinească condiția ca fiecare atribut care nu este cheie (nu participă la cheia primară) este \textbf{dependent de întreaga cheie primară}.
 
-Relația de mai sus nu se află în FN2 întrucât se găsesc atributele \emph{nume, prenume, nr\_telefon, .., tip\_angajat} care nu sunt chei și trebuie să depindă direct de întreaga cheie primară \textbf{id\_angajat\#} și \textbf{id\_permis\#}. Atributele nu depind direct de întreaga cheie primară, deoarece se observă dependeța directă dintre \emph{id\_angajat\#} și \emph{nume, prenume, .., tip\_angajat}, însemnând că \emph{nume, prenume, .., tip\_angajat} depind direct doar de o parte a cheii primare(i.e. \emph{id\_angajat\#} nu și de \emph{id\_permis\#}).
+Relația de mai sus nu se află în FN2 întrucât se găsesc atributele \emph{nume, prenume, nr\_telefon, .., tip\_angajat} care nu sunt chei și trebuie să depindă direct de întreaga cheie primară \textbf{id\_angajat\#} și \textbf{id\_permis\#}. Atributele nu depind direct de întreaga cheie primară, deoarece se observă dependența directă dintre \emph{id\_angajat\#} și \emph{nume, prenume, .., tip\_angajat}, însemnând că \emph{nume, prenume, .., tip\_angajat} depind direct doar de o parte a cheii primare(i.e. \emph{id\_angajat\#} nu și de \emph{id\_permis\#}).
 
 Aplicăm regula \emph{Casey-Delobel} pentru FN2:
 
@@ -405,7 +405,7 @@ id\_angajat\# & nume & prenume & .. & tip\_angajat \\
 
 Pentru ca relația \emph{SOFER\_detine\_PERMIS} să fie în formă normală 3 (FN3) trebuie să fie mai întâi în FN2, lucru realizat anterior, și în plus trebuie să îndeplinească condiția ca fiecare atribut care nu este cheie(nu participă la o cheie) \textbf{să depindă direct de cheia primară}.
 
-În proiecția \emph{R1(K1, K2, Y)} toate atributele depind direct de cheia primară. \emph{Categoria} reprezintă tipul de autovehicul pe care permisul îi oferă dreptului unui șofer care l-a obținut să conducă autovehicule de categoria respectivă. Data și ora reprezintă când a fost obținut permisul de o persoană(de acum supranumită șofer). Pentru această relație nu există dependențe tranzitive, de unde rezultă ca se află în FN3. Se va denumi această relație \emph{SOFER\_detine\_PERMIS}.
+În proiecția \emph{R1(K1, K2, Y)} toate atributele depind direct de cheia primară. \emph{Categoria} reprezintă tipul de autovehicul pe care permisul îi oferă dreptului unui șofer care l-a obținut să conducă autovehicule de categoria respectivă. Data și ora reprezintă când a fost obținut permisul de o persoană(de acum supranumită șofer). Pentru această relație nu există dependențe tranzitive, de unde rezultă că se află în FN3. Se va denumi această relație \emph{SOFER\_detine\_PERMIS}.
 
 Se verifică acum relația \emph{R2(K1, X)}.
 
@@ -558,7 +558,7 @@ Obs: Pentru atributele care se repetă s-a adăugat în paranteză la final un a
 Pentru ca relația \emph{CAMION\_transportă\_INVENTAR\_MARFĂ\_de\_la\_\\DEPOZIT\_la\_DEPOZIT} să fie în formă normală 2 (FN2) trebuie să fie mai întâi în FN1, lucru realizat anterior, și în plus trebuie să indeplinească condiția ca fiecare atribut care nu este cheie (nu participă la cheia primară) este \textbf{dependent de întreaga cheie primară}.
 
 Relația de mai sus nu se află în FN2 întrucât se găsesc atributele \\\emph{id\_firma(dp), id\_firma(dd),id\_firma(c), marca, nr\_inmatriculare} care nu sunt chei și trebuie să depindă direct de întreaga cheie primară \textbf{id\_transport\#} + \textbf{depozit\_plecare} + \textbf{depozit\_destinatie} + \textbf{id\_camion} + \textbf{id\_inventar\_\\transport\#} + \textbf{id\_lot\_marfa}.
-Atributele nu depind direct de întreaga cheie primară, deoarece se observă dependeța directă dintre \emph{id\_camion} și \\\emph{id\_firma(c), marca, nr\_inmatriculare} care nu sunt dependente și de \\\emph{depozit\_destinatie} (de exemplu).
+Atributele nu depind direct de întreaga cheie primară, deoarece se observă dependența directă dintre \emph{id\_camion} și \\\emph{id\_firma(c), marca, nr\_inmatriculare} care nu sunt dependente și de \\\emph{depozit\_destinatie} (de exemplu).
 
 Se mai găsesc următoarele dependențe funcționale:
 \begin{itemize}
@@ -668,7 +668,7 @@ id\_camion & id\_firma & marca & nr\_inmatriculare \\
 \end{center}
 \end{table}
 
-Pentru relația \emph{transport} se observă ca a ajuns la 6 chei primare, lucru ineficient în practică, fiind o decizie teribilă, motiv pentru care înlocuim cheia primară compusă cu o cheie primară simplă formată doar din \emph{id\_transport}.
+Pentru relația \emph{transport} se observă ca a ajuns la 6 chei primare, lucru ineficient în practică, fiind o decizie teribilă, motiv pentru care se înlocuiește cheia primară compusă cu o cheie primară simplă formată doar din \emph{id\_transport}.
 
 Relația anterioară se află în forma normală 3 (FN3) daca se află întâi în FN2, lucru realizat anterior, și în plus trebuie să îndeplinească condiția ca fiecare atribut care nu este cheie(nu participă la o cheie) \textbf{să depindă direct de cheia primară}.
 
@@ -1029,7 +1029,7 @@ $\rightarrow$Exemplu când denormalizarea nu este utilă:
 În tabelul \emph{LOT\_MARFA} în care sunt stocate loturile de marfă din transporturile efectuate. Loturile de marfă au atributele \textbf{nume} și \textbf{cantitate} care pot conține valori repetitive, aceeași cantitate putând aparținând mai multor loturi de marfă, analog pentru nume. Dacă în baza de date există un tabel separat pentru cantitate și unul pentru nume, fiecare împreună cu id-ul lotului de marfă căruia îi corespunde, este necesar să se aplice procesul de denormalizare în urma căruia atributele nume și cantitate se vor plasa în tabelul \emph{LOT\_MARFA} întrucât ar fi ineficient ca în interogări aceste atribute să se afle în tabele separate datorită unui dublu join care ar mări timpul de execuție în cazul în care se dorește aflarea tuturor informațiilor despre un anumit lot de marfă.
 
 $\rightarrow$Exemplu când denormalizarea este utilă:
-În tabelul \emph{ANGAJAT} există atributul \textbf{id\_firma} care reprezintă o cheie externă pentru o cheie primară din tabelul \emph{FIRMA}, acest atribut desemnând la ce firmă lucrează un angajat. Cu toate acestea se poate afla la ce firmă lucrează un angajat dacă se realizeaza un join între \emph{ANGAJAT}, \emph{ISTORIC\_CAMIOANE\_CONDUSE}, \emph{CAMION} și \emph{FIRMA} pentru un angajat de tip șofer și un join între \emph{ANGAJAT}, \emph{ECHIPA\_PAZA} și \emph{FIRMA}. Este deja evident că pentru aflarea acestei informații (la ce firmă lucreaza un angajat/ce angajați lucreaza la o firmă) o interogare ar avea un număr de join-uri prea mare pentru ce informație se dorește. Astfel se realizează denormalizarea acestui tabel prin adăugarea atributului \textbf{id\_firma} pentru a reduce nr. de join-uri din posibilele interogări dorite, lucru care rezultă într-un timp de execuție mai mic. Astfel această denormalizare se dovedește utilă.
+În tabelul \emph{ANGAJAT} există atributul \textbf{id\_firma} care reprezintă o cheie externă pentru o cheie primară din tabelul \emph{FIRMA}, acest atribut desemnând la ce firmă lucrează un angajat. Cu toate acestea se poate afla la ce firmă lucrează un angajat dacă se realizează un join între \emph{ANGAJAT}, \emph{ISTORIC\_CAMIOANE\_CONDUSE}, \emph{CAMION} și \emph{FIRMA} pentru un angajat de tip șofer și un join între \emph{ANGAJAT}, \emph{ECHIPA\_PAZA} și \emph{FIRMA}. Este deja evident că pentru aflarea acestei informații (la ce firmă lucreaza un angajat/ce angajați lucreaza la o firmă) o interogare ar avea un număr de join-uri prea mare pentru ce informație se dorește. Astfel se realizează denormalizarea acestui tabel prin adăugarea atributului \textbf{id\_firma} pentru a reduce nr. de join-uri din posibilele interogări dorite, lucru care rezultă într-un timp de execuție mai mic. Astfel această denormalizare se dovedește utilă.
 
 \newpage
 
@@ -1038,7 +1038,7 @@ $\rightarrow$Exemplu când denormalizarea este utilă:
 
 Se cer următoarele informații:
 
-Pentru fiecare camion sa se afiseze marca, nr. de inmatriculare, numele firmei, de ce soferi a fost condus(pentru fiecare sofer sa se precizeze numele, prenumele si salariul, in cazul in care un camion nu a fost condus de un sofer sa se inlocuiasca aceste coloane cu '-'), dar si data de plecare pentru fiecare transport realizat de sofer cu acest camion. Daca unui angajat i-a fost alocat un camion dar nu a realizat niciun transport in loc de data sa fie afisat mesajul 'nu a realizat transporturi'. Sa se afiseze informațiile despre angajatii doar daca sunt soferi, au fost angajati inainte de data de 13 sept 2020 si detin cel putin un permis auto, in cazul in care un camion a fost condus de un sofer care nu indeplineste aceste cerinte se vor inlocui coloanele cu informații despre angajat cu '-'. Sa se excluda camioanele de marca IVECO.
+Pentru fiecare camion să se afișeze marca, nr. de înmatriculare, numele firmei, de ce șoferi a fost condus(pentru fiecare șofer să se precizeze numele, prenumele și salariul, în cazul în care un camion nu a fost condus de un șofer să se înlocuiască aceste coloane cu '-'), dar și data de plecare pentru fiecare transport realizat de șofer cu acest camion. Dacă unui angajat i-a fost alocat un camion dar nu a realizat niciun transport in loc de dată să fie afișat mesajul 'nu a realizat transporturi'. Să se afișeze informațiile despre angajați doar dacă sunt șoferi, au fost angajați înainte de data de 13 sept 2020 si dețin cel putin un permis auto, în cazul în care un camion a fost condus de un șofer care nu îndeplinește aceste cerințe se vor înlocui coloanele cu informații despre angajat cu '-'. Să se excludă camioanele de marcă IVECO.
 
 Prima cerere \emph{SQL} implementată:
 
@@ -1118,7 +1118,7 @@ R1=SELECT(CAMION, upper(marca)!='IVECO')
 R2=PROJECT(R1, id_camion, id_firma, marca, nr_inmatriculare}
 R3=PROJECT(ISTORIC_CAMIOANE_CONDUSE, id_camion, id_angajat, data_inceput, data_sfarsit)
 R4=FULL OUTER JOIN(R2, R3, id_camion)
-R5=PROJECT(TRANSPORT, id_camion, data_plecare_
+R5=PROJECT(TRANSPORT, id_camion, data_plecare)
 R6=FULL OUTER JOIN(R4, R5, id_camion)
 R7=SELECT(R6, (icc.data_inceput < t.data_plecare and t.data_plecare <= NVL(icc.data_sfarsit, sysdate)) or t.data_plecare is null)
 R8=PROJECT(R7, icc.id_camion, icc.id_angajat, t.data_plecare, c.marca, c.nr_inmatriculare, c.id_firma)
