@@ -74,7 +74,7 @@ CREATE TABLE INVENTAR_DEPOZIT
      id_lot_marfa number(10) constraint fk_invdep_lotm references 
                                 LOT_MARFA(id_lot_marfa) on delete cascade,
      data_sosire date default sysdate,
-     data_plecare date default sysdate
+     data_plecare date
      );
      
 CREATE TABLE INVENTAR_TRANSPORT
@@ -110,7 +110,7 @@ CREATE TABLE ISTORIC_CAMIOANE_CONDUSE
      id_camion number(5) constraint fk_icam_cam references 
                             CAMION(id_camion) on delete cascade,
      data_inceput date default sysdate,
-     data_sfarsit date default sysdate
+     data_sfarsit date
      );
      
 CREATE TABLE PERMIS
